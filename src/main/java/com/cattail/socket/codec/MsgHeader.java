@@ -10,12 +10,12 @@ import java.io.Serializable;
  */
 public class MsgHeader implements Serializable {
 
-    private short magic; //魔数
-    private byte version; //协议版本号
-    private byte msgType; //数据类型
-    private byte status; // 状态
-    private long requestId; // 请求ID
-    private int serializationLen;
+    private short magic; //魔数 2
+    private byte version; //协议版本号 1
+    private byte msgType; //数据类型 1
+    private byte status; // 状态 1
+    private long requestId; // 请求ID 8
+    private int serializationLen; // 序列化规则名字的长度 4
     private byte[] serialization;
     private int msgLen; // 数据长度
 

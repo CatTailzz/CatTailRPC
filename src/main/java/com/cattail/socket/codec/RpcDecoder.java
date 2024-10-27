@@ -21,7 +21,7 @@ public class RpcDecoder extends ByteToMessageDecoder {
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf in, List<Object> out) throws Exception {
 
         //如果读取到的小于请求头大小，直接返回
-        if (in.readableBytes() < ProtocolConstants.HEADER_TOTAL_LEN) {
+        if (in.readableBytes() < ProtocolConstants.HEADER_PRE_LEN) {
             return;
         }
         //记录当前读取位置，方便回退
