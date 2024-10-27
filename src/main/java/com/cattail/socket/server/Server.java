@@ -1,11 +1,16 @@
 package com.cattail.socket.server;
 
-import com.cattail.socket.MyObject;
-import jdk.internal.util.xml.impl.Input;
-
-import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import com.cattail.socket.codec.RpcDecoder;
+import com.cattail.socket.codec.RpcEncoder;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @description:
@@ -14,111 +19,41 @@ import java.net.Socket;
  * @Copyright: https://github.com/CatTailzz
  */
 public class Server {
-    static int port = 12345;
+    private Logger logger = LoggerFactory.getLogger(Server.class);
 
-    public static void main(String[] args) throws IOException {
-        runWithObject();
+    private final int port;
+
+    public Server(int port) {
+        this.port = port;
     }
 
-    // 普通
-    public static void run() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("Server is listening on port" + port);
-
+    public void run() throws Exception {
+        EventLoopGroup bossGroup = new NioEventLoopGroup();
+        EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Accept connection from" + clientSocket.getInetAddress().getHostAddress());
-
-            InputStream in = clientSocket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-
-            while (true) {
-                String message = reader.readLine();
-                if (message == null) {
-                    break;
-                }
-                System.out.println("Received message from client:" + message);
-            }
+            ServerBootstrap b = new ServerBootstrap();
+            b.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel ch) throws Exception {
+                            ch.pipeline().addLast(new RpcEncoder());
+                            ch.pipeline().addLast(new RpcDecoder());
+                            ch.pipeline().addLast(new SimpleChatServerHandler());
+                        }
+                    })
+                    .option(ChannelOption.SO_BACKLOG, 128)
+                    .childOption(ChannelOption.SO_KEEPALIVE, true);
+            b.bind(port).sync().channel().closeFuture().sync();
+            logger.info("rpc server start...", port);
         } finally {
-            serverSocket.close();
+            workerGroup.shutdownGracefully();
+            bossGroup.shutdownGracefully();
         }
+
     }
 
-    // 针对粘包问题
-    public static void runWithSockyBag() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("Server is listening on port" + port);
-
-        try {
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Accept connection from" + clientSocket.getInetAddress().getHostAddress());
-
-            InputStream in = clientSocket.getInputStream();
-            DataInputStream dis = new DataInputStream(in);
-
-            while (true) {
-                int length = dis.readInt();
-                byte[] buffer = new byte[length];
-                dis.readFully(buffer);
-                String message = new String(buffer);
-
-                System.out.println("Received message from client:" + message);
-            }
-        } catch (EOFException e) {
-            System.out.println("End of stream reached. Client closed the connection");
-        } finally {
-            serverSocket.close();
-        }
-    }
-
-    //模拟半包问题
-    public static void runWithHalfPackage() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("Server is listening on port" + port);
-
-        try {
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Accept connection from" + clientSocket.getInetAddress().getHostAddress());
-
-            InputStream in = clientSocket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-
-            char[] buffer = new char[10];//用小的缓冲区来模拟半包
-            int charsRead = reader.read(buffer, 0, buffer.length);
-            while (charsRead != -1) {
-                String msg = new String(buffer, 0, charsRead);
-                System.out.println("Received msg:" + msg);
-                charsRead = reader.read(buffer, 0, buffer.length);
-            }
-
-            clientSocket.close();
-        } catch (EOFException e) {
-            System.out.println("End of stream reached. Client closed the connection");
-        } finally {
-            serverSocket.close();
-        }
-    }
-
-    //传输object问题
-    public static void runWithObject() throws IOException {
-        ServerSocket serverSocket = new ServerSocket(port);
-        System.out.println("Server is listening on port" + port);
-
-        try {
-            Socket clientSocket = serverSocket.accept();
-            System.out.println("Accept connection from" + clientSocket.getInetAddress().getHostAddress());
-
-            ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
-
-            MyObject myObject = (MyObject) in.readObject();
-            System.out.println("Received obj from client:" + myObject);
-
-            in.close();
-            clientSocket.close();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } finally {
-            serverSocket.close();
-        }
+    public static void main(String[] args) throws Exception {
+        new Server(12345).run();
     }
 }
