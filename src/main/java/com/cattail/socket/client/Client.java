@@ -1,10 +1,12 @@
 package com.cattail.socket.client;
 
-import com.cattail.common.RpcFuture;
-import com.cattail.common.RpcRequestHolder;
+import com.cattail.common.*;
 import com.cattail.common.constants.MsgType;
 import com.cattail.common.constants.ProtocolConstants;
+import com.cattail.common.constants.RpcProxy;
 import com.cattail.common.constants.RpcSerialization;
+import com.cattail.proxy.IProxy;
+import com.cattail.proxy.ProxyFactory;
 import com.cattail.service.HelloService;
 import com.cattail.socket.codec.*;
 import com.sun.jndi.cosnaming.IiopUrl;
@@ -59,50 +61,23 @@ public class Client {
                                 .addLast(new ClientHanlder());
                     }
                 });
-        channelFuture = bootstrap.connect(host, port).sync();
     }
 
-    public void sendRequest(Object o) {
-        channelFuture.channel().writeAndFlush(o);
+    public void registerBean(String serviceName) {
+        final URL url = new URL(this.host, this.port);
+        Cache.services.put(new ServiceName(serviceName), url);
+        channelFuture = bootstrap.connect(host, port);
+        Cache.channelFutureMap.put(url, channelFuture);
     }
 
-    public static void main(String[] args) throws InterruptedException, NoSuchMethodException, ExecutionException, TimeoutException {
-        final Client nettyClient = new Client("127.0.0.1", 12345);
-        final RpcProtocol rpcProtocol = new RpcProtocol();
+    public static void main(String[] args) throws Exception {
+        final Client client = new Client("127.0.0.1", 12345);
+        client.registerBean(HelloService.class.getName());
+        final IProxy iProxy = ProxyFactory.get(RpcProxy.CG_LIB);
+        final HelloService proxy = iProxy.getProxy(HelloService.class);
+        System.out.println(proxy.hello("cattail"));
 
-        // 构建消息头
-        MsgHeader header = new MsgHeader();
-        long requestId = RpcRequestHolder.getRequestId();
-        header.setMagic(ProtocolConstants.MAGIC);
-        header.setVersion(ProtocolConstants.VERSION);
-        header.setRequestId(requestId);
 
-        final byte[] serialzation = RpcSerialization.JSON.name.getBytes();
-        header.setSerializationLen(serialzation.length);
-        header.setSerialization(serialzation);
-        // 获取枚举的索引值
-        header.setMsgType((byte) MsgType.REQUEST.ordinal());
-        header.setStatus((byte) 0x1);
-        rpcProtocol.setHeader(header);
-
-        //设置消息体
-        final RpcRequest rpcRequest = new RpcRequest();
-        final Class<HelloService> aClass = HelloService.class;
-        rpcRequest.setClassName(aClass.getName());
-        final Method method = aClass.getMethod("hello", String.class);
-        rpcRequest.setMethodCode(method.hashCode());
-        rpcRequest.setMethodName(method.getName());
-        rpcRequest.setServiceVersion("1.0");
-        rpcRequest.setParameterTypes(method.getParameterTypes()[0]);
-        rpcRequest.setParameter("cattail!");
-
-        rpcProtocol.setBody(rpcRequest);
-        nettyClient.sendRequest(rpcProtocol);
-
-        RpcFuture<RpcResponse> future = new RpcFuture<>(new DefaultPromise<>(new DefaultEventLoop()), 3000);
-        RpcRequestHolder.REQUEST_MAP.put(requestId, future);
-        RpcResponse rpcResponse = future.getPromise().sync().get(future.getTimeout(), TimeUnit.MILLISECONDS);
-        System.out.println(rpcResponse);
     }
 }
 
