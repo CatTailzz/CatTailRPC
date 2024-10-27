@@ -39,7 +39,7 @@ public class Server {
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ch.pipeline().addLast(new RpcEncoder());
                             ch.pipeline().addLast(new RpcDecoder());
-                            ch.pipeline().addLast(new SimpleChatServerHandler());
+                            ch.pipeline().addLast(new ServiceHandler());
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)

@@ -1,26 +1,28 @@
 package com.cattail.socket.client;
 
+import com.cattail.common.RpcFuture;
+import com.cattail.common.RpcRequestHolder;
 import com.cattail.common.constants.MsgType;
 import com.cattail.common.constants.ProtocolConstants;
 import com.cattail.common.constants.RpcSerialization;
-import com.cattail.socket.codec.MsgHeader;
-import com.cattail.socket.codec.RpcDecoder;
-import com.cattail.socket.codec.RpcEncoder;
-import com.cattail.socket.codec.RpcProtocol;
+import com.cattail.service.HelloService;
+import com.cattail.socket.codec.*;
 import com.sun.jndi.cosnaming.IiopUrl;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.concurrent.DefaultPromise;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sound.sampled.Port;
 import java.awt.print.Book;
+import java.lang.reflect.Method;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @description:
@@ -53,7 +55,8 @@ public class Client {
                     protected void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline()
                                 .addLast(new RpcEncoder())
-                                .addLast(new RpcDecoder());
+                                .addLast(new RpcDecoder())
+                                .addLast(new ClientHanlder());
                     }
                 });
         channelFuture = bootstrap.connect(host, port).sync();
@@ -63,15 +66,15 @@ public class Client {
         channelFuture.channel().writeAndFlush(o);
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, NoSuchMethodException, ExecutionException, TimeoutException {
         final Client nettyClient = new Client("127.0.0.1", 12345);
         final RpcProtocol rpcProtocol = new RpcProtocol();
 
         // 构建消息头
         MsgHeader header = new MsgHeader();
+        long requestId = RpcRequestHolder.getRequestId();
         header.setMagic(ProtocolConstants.MAGIC);
         header.setVersion(ProtocolConstants.VERSION);
-        long requestId = 123;
         header.setRequestId(requestId);
 
         final byte[] serialzation = RpcSerialization.JSON.name.getBytes();
@@ -81,78 +84,25 @@ public class Client {
         header.setMsgType((byte) MsgType.REQUEST.ordinal());
         header.setStatus((byte) 0x1);
         rpcProtocol.setHeader(header);
-        rpcProtocol.setBody(new MyObject());
+
+        //设置消息体
+        final RpcRequest rpcRequest = new RpcRequest();
+        final Class<HelloService> aClass = HelloService.class;
+        rpcRequest.setClassName(aClass.getName());
+        final Method method = aClass.getMethod("hello", String.class);
+        rpcRequest.setMethodCode(method.hashCode());
+        rpcRequest.setMethodName(method.getName());
+        rpcRequest.setServiceVersion("1.0");
+        rpcRequest.setParameterTypes(method.getParameterTypes()[0]);
+        rpcRequest.setParameter("cattail!");
+
+        rpcProtocol.setBody(rpcRequest);
         nettyClient.sendRequest(rpcProtocol);
+
+        RpcFuture<RpcResponse> future = new RpcFuture<>(new DefaultPromise<>(new DefaultEventLoop()), 3000);
+        RpcRequestHolder.REQUEST_MAP.put(requestId, future);
+        RpcResponse rpcResponse = future.getPromise().sync().get(future.getTimeout(), TimeUnit.MILLISECONDS);
+        System.out.println(rpcResponse);
     }
 }
 
-class MyObject {
-    String name = "cattail";
-
-    Integer age = 24;
-
-    Address address = new Address();
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
-
-    public Address getAddress() {
-        return address;
-    }
-
-    public void setAddress(Address address) {
-        this.address = address;
-    }
-
-    @Override
-    public String toString() {
-        return "MyObject{" +
-                "name='" + name + '\'' +
-                ", age=" + age +
-                ", address=" + address +
-                '}';
-    }
-}
-
-class Address {
-    String host = "127.0.0.1";
-
-    Integer port = 12345;
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public Integer getPort() {
-        return port;
-    }
-
-    public void setPort(Integer port) {
-        this.port = port;
-    }
-
-    @Override
-    public String toString() {
-        return "Address{" +
-                "host='" + host + '\'' +
-                ", port=" + port +
-                '}';
-    }
-}

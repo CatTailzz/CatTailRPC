@@ -71,12 +71,21 @@ public class RpcDecoder extends ByteToMessageDecoder {
 
         //构建body
         com.cattail.socket.serialization.RpcSerialization rpcSerialization = SerializationFactory.get(RpcSerialization.get(serialization));
-        final String body = rpcSerialization.deserialize(data, String.class);
 
         //构建protocol
         RpcProtocol protocol = new RpcProtocol();
         protocol.setHeader(header);
-        protocol.setBody(body);
+
+        switch (msgtypeEnum) {
+            case REQUEST:
+                RpcRequest request = rpcSerialization.deserialize(data, RpcRequest.class);
+                protocol.setBody(request);
+                break;
+            case RESPONSE:
+                RpcResponse response = rpcSerialization.deserialize(data, RpcResponse.class);
+                protocol.setBody(response);
+                break;
+        }
         out.add(protocol);
     }
 }
