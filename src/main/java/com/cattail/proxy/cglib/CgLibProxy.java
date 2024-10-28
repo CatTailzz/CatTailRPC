@@ -1,11 +1,11 @@
 package com.cattail.proxy.cglib;
 
+import com.cattail.annotation.RpcReference;
 import com.cattail.common.*;
-import com.cattail.common.constants.MsgType;
-import com.cattail.common.constants.ProtocolConstants;
-import com.cattail.common.constants.Register;
-import com.cattail.common.constants.RpcSerialization;
+import com.cattail.common.constants.*;
 import com.cattail.register.RegistryFactory;
+import com.cattail.router.LoadBalancer;
+import com.cattail.router.LoadBalancerFactory;
 import com.cattail.service.HelloService;
 import com.cattail.socket.codec.MsgHeader;
 import com.cattail.socket.codec.RpcProtocol;
@@ -17,6 +17,7 @@ import io.netty.util.concurrent.DefaultPromise;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -29,13 +30,20 @@ import java.util.concurrent.TimeUnit;
  */
 public class CgLibProxy implements MethodInterceptor {
 
-    private final Object object;
-
     private final String serviceName;
 
-    public CgLibProxy(Object object) {
-        this.object = object;
-        this.serviceName = object.getClass().getName();
+    private final String version;
+
+    private final long time;
+
+    private final TimeUnit timeUnit;
+
+    public CgLibProxy(Class clazz) {
+        this.serviceName = clazz.getName();
+        RpcReference annotation = (RpcReference) clazz.getAnnotation(RpcReference.class);
+        this.version = annotation.version();
+        this.time = annotation.time();
+        this.timeUnit = annotation.timeUnit();
     }
 
     @Override
@@ -58,10 +66,10 @@ public class CgLibProxy implements MethodInterceptor {
 
         //设置消息体
         final RpcRequest rpcRequest = new RpcRequest();
-        rpcRequest.setClassName(object.getClass().getName());
+        rpcRequest.setClassName(method.getDeclaringClass().getName());
         rpcRequest.setMethodCode(method.hashCode());
         rpcRequest.setMethodName(method.getName());
-        rpcRequest.setServiceVersion("1.0");
+        rpcRequest.setServiceVersion(version);
         if (null != objects && objects.length > 0) {
             rpcRequest.setParameterTypes(objects[0].getClass());
             rpcRequest.setParameter(objects[0]);
@@ -69,19 +77,20 @@ public class CgLibProxy implements MethodInterceptor {
         rpcProtocol.setBody(rpcRequest);
 
         // 可用的服务从zookeeper里获取
-        final List<URL> urls = RegistryFactory.get(Register.ZOOKEEPER).discoveries(serviceName, "1.0");
+        final List<URL> urls = RegistryFactory.get(Register.ZOOKEEPER).discoveries(serviceName, version);
         if (urls.isEmpty()) {
             throw new Exception("无服务可用：" + serviceName);
         }
         // 这里先取第一个，后面换负载均衡
-        final URL url = urls.get(0);
+        final LoadBalancer loadBalancer = LoadBalancerFactory.get(LoadBalance.Round);
+        final URL url = loadBalancer.select(urls);
 
         final ChannelFuture channelFuture = Cache.CHANNEL_FUTURE_MAP.get(new Host(url.getIp(), url.getPort()));
         channelFuture.channel().writeAndFlush(rpcProtocol);
 
-        RpcFuture<RpcResponse> future = new RpcFuture<>(new DefaultPromise<>(new DefaultEventLoop()), 3000);
+        RpcFuture<RpcResponse> future = new RpcFuture<>(new DefaultPromise<>(new DefaultEventLoop()), time);
         RpcRequestHolder.REQUEST_MAP.put(requestId, future);
-        RpcResponse rpcResponse = future.getPromise().sync().get(future.getTimeout(), TimeUnit.MILLISECONDS);
+        RpcResponse rpcResponse = future.getPromise().sync().get(future.getTimeout(), timeUnit);
 
         if (rpcResponse.getException() != null) {
             throw rpcResponse.getException();

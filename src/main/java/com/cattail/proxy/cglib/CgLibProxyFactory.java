@@ -15,7 +15,7 @@ public class CgLibProxyFactory<T> implements IProxy {
     public <T> T getProxy(Class<T> clz) throws InstantiationException, IllegalAccessException {
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(clz);
-        enhancer.setCallback(new CgLibProxy(clz.newInstance()));
+        enhancer.setCallback(new CgLibProxy(clz));
         return (T) enhancer.create();
     }
 }

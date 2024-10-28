@@ -8,6 +8,7 @@ import com.cattail.proxy.ProxyFactory;
 import com.cattail.register.RegistryFactory;
 import com.cattail.register.RegistryService;
 import com.cattail.service.HelloService;
+import com.cattail.service.IHelloService;
 import com.cattail.socket.codec.*;
 import com.sun.jndi.cosnaming.IiopUrl;
 import io.netty.bootstrap.Bootstrap;
@@ -71,11 +72,14 @@ public class Client {
     public void connectServer() throws Exception {
         for (URL url : Cache.SUBSCRIBE_SERVICE_LIST) {
             final RegistryService registryService = RegistryFactory.get(Register.ZOOKEEPER);
-            List<URL> urls = registryService.discoveries(url.getServiceName(), url.getVersion());
-            for (URL u : urls) {
-                final ChannelFuture connect = bootstrap.connect(u.getIp(), u.getPort());
-                Cache.CHANNEL_FUTURE_MAP.put(new Host(u.getIp(), u.getPort()), connect);
+            final List<URL> urls = registryService.discoveries(url.getServiceName(), url.getVersion());
+            if (!urls.isEmpty()) {
+                for (URL u : urls) {
+                    final ChannelFuture connect = bootstrap.connect(u.getIp(), u.getPort());
+                    Cache.CHANNEL_FUTURE_MAP.put(new Host(u.getIp(), u.getPort()), connect);
+                }
             }
+
         }
     }
 
@@ -85,14 +89,15 @@ public class Client {
         client.run();
         final RegistryService registryService = RegistryFactory.get(Register.ZOOKEEPER);
         final URL url = new URL();
-        url.setServiceName(HelloService.class.getName());
+        url.setServiceName(IHelloService.class.getName());
         url.setVersion("1.0");
         registryService.subscribe(url);
         client.connectServer();
         final IProxy iProxy = ProxyFactory.get(RpcProxy.CG_LIB);
-        final HelloService proxy = iProxy.getProxy(HelloService.class);
+        final IHelloService proxy = iProxy.getProxy(IHelloService.class);
         System.out.println(proxy.hello("cattail"));
-
+        System.out.println("===");
+        System.out.println(proxy.hello("xxx"));
 
     }
 }

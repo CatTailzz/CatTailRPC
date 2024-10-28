@@ -25,4 +25,6 @@ public class Cache {
     public static List<URL> SUBSCRIBE_SERVICE_LIST = new ArrayList<>();
 
     public static Bootstrap BOOT_STRAP;
+
+    public static Map<String, Object> SERVICE_MAP = new HashMap<>();
 }

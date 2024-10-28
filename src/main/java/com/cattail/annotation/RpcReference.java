@@ -4,7 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
+import java.util.concurrent.TimeUnit;
 
 /**
  * @description:
@@ -13,18 +13,12 @@ import java.lang.annotation.Target;
  * @Copyright: https://github.com/CatTailzz
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(value={ElementType.TYPE})
-public @interface RpcService {
+@Target({ElementType.FIELD, ElementType.TYPE})
+public @interface RpcReference {
 
-    /**
-     * 指定实现方，默认为实现接口中的第一个
-     * @return
-     */
-    Class<?> serviceInterface() default void.class;
-
-    /**
-     * 版本
-     * @return
-     */
     String version() default "1.0";
+
+    long time() default 3000;
+
+    TimeUnit timeUnit() default TimeUnit.MICROSECONDS;
 }

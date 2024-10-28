@@ -7,6 +7,7 @@ import com.cattail.common.constants.Register;
 import com.cattail.register.RegistryFactory;
 import com.cattail.register.RegistryService;
 import com.cattail.service.HelloService;
+import com.cattail.service.HelloService2;
 import com.cattail.socket.codec.RpcDecoder;
 import com.cattail.socket.codec.RpcEncoder;
 import com.cattail.utils.ServiceNameBuilder;
@@ -20,25 +21,24 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.xml.ws.Service;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
  * @description:
  * @author：CatTail
- * @date: 2024/10/26
+ * @date: 2024/10/29
  * @Copyright: https://github.com/CatTailzz
  */
-public class Server {
-    private Logger logger = LoggerFactory.getLogger(Server.class);
+public class Server2 {
+    private Logger logger = LoggerFactory.getLogger(Server2.class);
 
     private String host;
     private final int port;
 
     private ServerBootstrap bootstrap;
 
-    public Server(int port) {
+    public Server2(int port) {
 
         this.port = port;
         InetAddress inetAddress = null;
@@ -96,8 +96,8 @@ public class Server {
     }
 
     public static void main(String[] args) throws Exception {
-        final Server server = new Server(12345);
-        server.registerBean(HelloService.class);
-        server.run();
+        final Server2 server2 = new Server2(12346);
+        server2.registerBean(HelloService2.class);
+        server2.run();
     }
 }
