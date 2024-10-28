@@ -12,14 +12,19 @@ public class ServiceName {
 
     private final String name;
 
-    public ServiceName(String name) {
+    private final String version;
+
+    public ServiceName(String name, String version) {
+
         this.name = name;
+        this.version = version;
     }
 
     @Override
     public String toString() {
         return "ServiceName{" +
                 "name='" + name + '\'' +
+                ", version='" + version + '\'' +
                 '}';
     }
 
@@ -32,11 +37,11 @@ public class ServiceName {
             return false;
         }
         ServiceName that = (ServiceName) o;
-        return Objects.equals(name, that.name);
+        return Objects.equals(name, that.name) && Objects.equals(version, that.version);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name);
+        return Objects.hash(name, version);
     }
 }

@@ -1,12 +1,12 @@
 package com.cattail.socket.client;
 
 import com.cattail.common.*;
-import com.cattail.common.constants.MsgType;
-import com.cattail.common.constants.ProtocolConstants;
-import com.cattail.common.constants.RpcProxy;
-import com.cattail.common.constants.RpcSerialization;
+import com.cattail.common.constants.*;
+import com.cattail.event.RpcListenerLoader;
 import com.cattail.proxy.IProxy;
 import com.cattail.proxy.ProxyFactory;
+import com.cattail.register.RegistryFactory;
+import com.cattail.register.RegistryService;
 import com.cattail.service.HelloService;
 import com.cattail.socket.codec.*;
 import com.sun.jndi.cosnaming.IiopUrl;
@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import javax.sound.sampled.Port;
 import java.awt.print.Book;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,15 +40,17 @@ public class Client {
 
     private final Integer port;
 
-    private final Bootstrap bootstrap;
-    private final EventLoopGroup eventLoopGroup;
+    private Bootstrap bootstrap;
+    private EventLoopGroup eventLoopGroup;
 
     private ChannelFuture channelFuture;
 
     public Client(String host, Integer port) throws InterruptedException {
         this.host = host;
         this.port = port;
+    }
 
+    public void run(){
         bootstrap = new Bootstrap();
         eventLoopGroup = new NioEventLoopGroup(4);
         bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class)
@@ -61,18 +64,31 @@ public class Client {
                                 .addLast(new ClientHanlder());
                     }
                 });
+
+        Cache.BOOT_STRAP = bootstrap;
     }
 
-    public void registerBean(String serviceName) {
-        final URL url = new URL(this.host, this.port);
-        Cache.services.put(new ServiceName(serviceName), url);
-        channelFuture = bootstrap.connect(host, port);
-        Cache.channelFutureMap.put(url, channelFuture);
+    public void connectServer() throws Exception {
+        for (URL url : Cache.SUBSCRIBE_SERVICE_LIST) {
+            final RegistryService registryService = RegistryFactory.get(Register.ZOOKEEPER);
+            List<URL> urls = registryService.discoveries(url.getServiceName(), url.getVersion());
+            for (URL u : urls) {
+                final ChannelFuture connect = bootstrap.connect(u.getIp(), u.getPort());
+                Cache.CHANNEL_FUTURE_MAP.put(new Host(u.getIp(), u.getPort()), connect);
+            }
+        }
     }
 
     public static void main(String[] args) throws Exception {
+        new RpcListenerLoader().init();
         final Client client = new Client("127.0.0.1", 12345);
-        client.registerBean(HelloService.class.getName());
+        client.run();
+        final RegistryService registryService = RegistryFactory.get(Register.ZOOKEEPER);
+        final URL url = new URL();
+        url.setServiceName(HelloService.class.getName());
+        url.setVersion("1.0");
+        registryService.subscribe(url);
+        client.connectServer();
         final IProxy iProxy = ProxyFactory.get(RpcProxy.CG_LIB);
         final HelloService proxy = iProxy.getProxy(HelloService.class);
         System.out.println(proxy.hello("cattail"));

@@ -1,5 +1,11 @@
 package com.cattail.socket.server;
 
+import com.cattail.annotation.RpcService;
+import com.cattail.common.URL;
+import com.cattail.common.constants.Register;
+import com.cattail.register.RegistryFactory;
+import com.cattail.register.RegistryService;
+import com.cattail.service.HelloService;
 import com.cattail.socket.codec.RpcDecoder;
 import com.cattail.socket.codec.RpcEncoder;
 import io.netty.bootstrap.ServerBootstrap;
@@ -12,6 +18,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 /**
  * @description:
  * @author：CatTail
@@ -21,18 +30,29 @@ import org.slf4j.LoggerFactory;
 public class Server {
     private Logger logger = LoggerFactory.getLogger(Server.class);
 
+    private String host;
     private final int port;
 
+    private ServerBootstrap bootstrap;
+
     public Server(int port) {
+
         this.port = port;
+        InetAddress inetAddress = null;
+        try {
+            inetAddress = InetAddress.getLocalHost();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+        host = inetAddress.getHostAddress();
     }
 
     public void run() throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
+            bootstrap = new ServerBootstrap();
+            bootstrap.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
@@ -44,7 +64,7 @@ public class Server {
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-            b.bind(port).sync().channel().closeFuture().sync();
+            bootstrap.bind(port).sync().channel().closeFuture().sync();
             logger.info("rpc server start...", port);
         } finally {
             workerGroup.shutdownGracefully();
@@ -53,7 +73,22 @@ public class Server {
 
     }
 
+    public void registerBean(Class clazz) throws Exception {
+        final URL url = new URL(host, port);
+        if (!clazz.isAnnotationPresent(RpcService.class)) {
+            throw new Exception(clazz.getName() + "没有注解 RpcService");
+        }
+        final RpcService annotation = (RpcService) clazz.getAnnotation(RpcService.class);
+        url.setServiceName(clazz.getName());
+        url.setVersion(annotation.version());
+        final RegistryService registryService = RegistryFactory.get(Register.ZOOKEEPER);
+        registryService.register(url);
+
+    }
+
     public static void main(String[] args) throws Exception {
-        new Server(12345).run();
+        final Server server = new Server(12345);
+        server.registerBean(HelloService.class);
+        server.run();
     }
 }
