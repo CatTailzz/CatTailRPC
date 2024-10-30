@@ -98,6 +98,10 @@ public class Client {
         System.out.println(proxy.hello("cattail"));
         System.out.println("===");
         System.out.println(proxy.hello("xxx"));
+        System.out.println("===");
+        System.out.println(proxy.hello("xxx"));
+        System.out.println("===");
+        System.out.println(proxy.hello("xxx"));
 
     }
 }

@@ -1,5 +1,7 @@
 package com.cattail.annotation;
 
+import com.cattail.common.constants.FaultTolerant;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -17,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 public @interface RpcReference {
 
     String version() default "1.0";
+
+    FaultTolerant faultTolerant() default FaultTolerant.Failover;
 
     long time() default 3000;
 

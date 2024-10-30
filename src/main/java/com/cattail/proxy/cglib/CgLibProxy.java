@@ -11,6 +11,9 @@ import com.cattail.socket.codec.MsgHeader;
 import com.cattail.socket.codec.RpcProtocol;
 import com.cattail.socket.codec.RpcRequest;
 import com.cattail.socket.codec.RpcResponse;
+import com.cattail.tolerant.FaultContext;
+import com.cattail.tolerant.FaultTolerantFactory;
+import com.cattail.tolerant.IFaultTolerantStrategy;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.DefaultEventLoop;
 import io.netty.util.concurrent.DefaultPromise;
@@ -20,6 +23,7 @@ import net.sf.cglib.proxy.MethodProxy;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,6 +38,8 @@ public class CgLibProxy implements MethodInterceptor {
 
     private final String version;
 
+    private final FaultTolerant faultTolerant;
+
     private final long time;
 
     private final TimeUnit timeUnit;
@@ -42,6 +48,7 @@ public class CgLibProxy implements MethodInterceptor {
         this.serviceName = clazz.getName();
         RpcReference annotation = (RpcReference) clazz.getAnnotation(RpcReference.class);
         this.version = annotation.version();
+        this.faultTolerant = annotation.faultTolerant();
         this.time = annotation.time();
         this.timeUnit = annotation.timeUnit();
     }
@@ -93,7 +100,10 @@ public class CgLibProxy implements MethodInterceptor {
         RpcResponse rpcResponse = future.getPromise().sync().get(future.getTimeout(), timeUnit);
 
         if (rpcResponse.getException() != null) {
-            throw rpcResponse.getException();
+            rpcResponse.getException().printStackTrace();
+            final FaultContext faultContext = new FaultContext(url, urls, rpcProtocol, requestId, rpcResponse.getException());
+            final IFaultTolerantStrategy iFaultTolerantStrategy = FaultTolerantFactory.get(faultTolerant);
+            return iFaultTolerantStrategy.handler(faultContext);
         }
         return rpcResponse.getData();
 
