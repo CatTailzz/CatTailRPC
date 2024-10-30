@@ -1,7 +1,9 @@
 package com.cattail.socket.serialization;
 
 import com.cattail.common.constants.RpcSerialization;
+import com.cattail.spi.ExtensionLoader;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,13 +15,16 @@ import java.util.Map;
  */
 public class SerializationFactory {
 
-    private static Map<RpcSerialization, com.cattail.socket.serialization.RpcSerialization> serializationMap = new HashMap<>();
-
-    static {
-        serializationMap.put(RpcSerialization.JSON, new JsonSerialization());
-    }
 
     public static com.cattail.socket.serialization.RpcSerialization get(RpcSerialization serialization) {
-        return serializationMap.get(serialization);
+        return ExtensionLoader.getInstance().get(serialization.name);
+    }
+
+    public static com.cattail.socket.serialization.RpcSerialization get(String name) {
+        return ExtensionLoader.getInstance().get(name);
+    }
+
+    public static void init() throws IOException, ClassNotFoundException {
+        ExtensionLoader.getInstance().loadExtension(com.cattail.socket.serialization.RpcSerialization.class);
     }
 }

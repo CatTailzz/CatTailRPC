@@ -8,11 +8,13 @@ import com.cattail.filter.Filter;
 import com.cattail.filter.FilterData;
 import com.cattail.filter.FilterFactory;
 import com.cattail.filter.FilterResponse;
+import com.cattail.invoke.InvokerFactory;
 import com.cattail.register.RegistryFactory;
 import com.cattail.register.RegistryService;
 import com.cattail.service.HelloService;
 import com.cattail.socket.codec.RpcDecoder;
 import com.cattail.socket.codec.RpcEncoder;
+import com.cattail.socket.serialization.SerializationFactory;
 import com.cattail.utils.ServiceNameBuilder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -25,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.ws.Service;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -99,16 +102,16 @@ public class Server {
 
     }
 
+    public void init() throws IOException, ClassNotFoundException {
+        RegistryFactory.init();
+        FilterFactory.initServer();
+        InvokerFactory.init();
+        SerializationFactory.init();
+    }
+
     public static void main(String[] args) throws Exception {
         final Server server = new Server(12345);
-        FilterFactory.registerServiceBeforeFilter(new ServerTokenFilter());
-        FilterFactory.registerServiceAfterFilter(new Filter() {
-            @Override
-            public FilterResponse doFilter(FilterData filterData) {
-                System.out.println("server after");
-                return new FilterResponse(true, null);
-            }
-        });
+        server.init();
         server.registerBean(HelloService.class);
         server.run();
     }

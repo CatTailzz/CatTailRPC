@@ -1,7 +1,9 @@
 package com.cattail.tolerant;
 
 import com.cattail.common.constants.FaultTolerant;
+import com.cattail.spi.ExtensionLoader;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,14 +15,15 @@ import java.util.Map;
  */
 public class FaultTolerantFactory {
 
-    private static Map<FaultTolerant, IFaultTolerantStrategy> FAULT_TOLERANT_STRATEGY_MAP = new HashMap<>();
-
-    static {
-        FAULT_TOLERANT_STRATEGY_MAP.put(FaultTolerant.Failover, new FailoverIFaultTorelrantStrategy());
-        FAULT_TOLERANT_STRATEGY_MAP.put(FaultTolerant.FailFast, new FailFastIFaultTolerantStrategy());
+    public static IFaultTolerantStrategy get(FaultTolerant faultTolerant) {
+        return ExtensionLoader.getInstance().get(faultTolerant.name);
     }
 
-    public static IFaultTolerantStrategy get(FaultTolerant faultTolerant) {
-        return FAULT_TOLERANT_STRATEGY_MAP.get(faultTolerant);
+    public static IFaultTolerantStrategy get(String name) {
+        return ExtensionLoader.getInstance().get(name);
+    }
+
+    public static void init() throws IOException, ClassNotFoundException {
+        ExtensionLoader.getInstance().loadExtension(IFaultTolerantStrategy.class);
     }
 }

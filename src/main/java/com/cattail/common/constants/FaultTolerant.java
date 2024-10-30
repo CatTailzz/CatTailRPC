@@ -12,7 +12,7 @@ public enum FaultTolerant {
 
     FailFast("failFast");
 
-    final String name;
+    public String name;
 
     FaultTolerant(String name) {
         this.name = name;

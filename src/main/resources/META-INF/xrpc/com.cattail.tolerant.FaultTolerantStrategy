@@ -1,0 +1,2 @@
+failFast=com.cattail.tolerant.FailFastIFaultTolerantStrategy
+failover=com.cattail.tolerant.FailoverIFaultTorelrantStrategy

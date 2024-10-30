@@ -1,7 +1,9 @@
 package com.cattail.router;
 
 import com.cattail.common.constants.LoadBalance;
+import com.cattail.spi.ExtensionLoader;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,13 +15,15 @@ import java.util.Map;
  */
 public class LoadBalancerFactory {
 
-    private static Map<LoadBalance, LoadBalancer> loadBalancerMap = new HashMap<>();
-
-    static {
-        loadBalancerMap.put(LoadBalance.Round, new RoundRobinLoadBalancer());
+    public static LoadBalancer get(LoadBalance loadBalance) {
+        return ExtensionLoader.getInstance().get(loadBalance.name);
     }
 
-    public static LoadBalancer get(LoadBalance loadBalance) {
-        return loadBalancerMap.get(loadBalance);
+    public static LoadBalancer get(String name) {
+        return ExtensionLoader.getInstance().get(name);
+    }
+
+    public static void init() throws IOException, ClassNotFoundException {
+        ExtensionLoader.getInstance().loadExtension(LoadBalancer.class);
     }
 }

@@ -36,12 +36,13 @@ public class CuratorZookeeperRegistry extends AbstractZookeeperRegistry{
 
     private final CuratorFramework client;
 
+    private static final String addr = "127.0.0.1:2181";
+
     /**
      * 启动zk
-     * @param registerAddr
      */
-    public CuratorZookeeperRegistry(String registerAddr) {
-        client = CuratorFrameworkFactory.newClient(registerAddr, new ExponentialBackoffRetry(BASE_SLEEP_TIME_MS, MAX_RETRIES));
+    public CuratorZookeeperRegistry() {
+        client = CuratorFrameworkFactory.newClient(addr, new ExponentialBackoffRetry(BASE_SLEEP_TIME_MS, MAX_RETRIES));
         client.start();
     }
 

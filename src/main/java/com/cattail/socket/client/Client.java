@@ -11,9 +11,12 @@ import com.cattail.proxy.IProxy;
 import com.cattail.proxy.ProxyFactory;
 import com.cattail.register.RegistryFactory;
 import com.cattail.register.RegistryService;
+import com.cattail.router.LoadBalancerFactory;
 import com.cattail.service.HelloService;
 import com.cattail.service.IHelloService;
 import com.cattail.socket.codec.*;
+import com.cattail.socket.serialization.SerializationFactory;
+import com.cattail.tolerant.FaultTolerantFactory;
 import com.sun.jndi.cosnaming.IiopUrl;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -26,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.sound.sampled.Port;
 import java.awt.print.Book;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -87,10 +91,20 @@ public class Client {
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    public void init() throws IOException, ClassNotFoundException {
         new RpcListenerLoader().init();
+        FaultTolerantFactory.init();
+        RegistryFactory.init();
+        FilterFactory.initClient();
+        ProxyFactory.init();
+        LoadBalancerFactory.init();
+        SerializationFactory.init();
+    }
+
+    public static void main(String[] args) throws Exception {
         final Client client = new Client("127.0.0.1", 12345);
         client.run();
+        client.init();
         final RegistryService registryService = RegistryFactory.get(Register.ZOOKEEPER);
         final URL url = new URL();
         url.setServiceName(IHelloService.class.getName());
@@ -99,14 +113,6 @@ public class Client {
         client.connectServer();
         final IProxy iProxy = ProxyFactory.get(RpcProxy.CG_LIB);
         final IHelloService proxy = iProxy.getProxy(IHelloService.class);
-        FilterFactory.registerClientBeforeFilter(new ClientTokenFilter());
-        FilterFactory.registerClientAfterFilter(new Filter() {
-            @Override
-            public FilterResponse doFilter(FilterData filterData) {
-                System.out.println("client after");
-                return new FilterResponse(true, null);
-            }
-        });
         System.out.println(proxy.hello("cattail"));
         System.out.println("===");
         System.out.println(proxy.hello("xxx"));
