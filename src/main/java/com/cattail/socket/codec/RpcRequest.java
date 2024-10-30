@@ -1,6 +1,8 @@
 package com.cattail.socket.codec;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @description:
@@ -16,6 +18,25 @@ public class RpcRequest implements Serializable {
     private Integer methodCode;
     private Object parameter;
     private Class<?> parameterTypes;
+
+    private Map<String, Object> serviceAttachments = new HashMap<>();
+    private Map<String, Object> clientAttachments = new HashMap<>();
+
+    public Map<String, Object> getServiceAttachments() {
+        return serviceAttachments;
+    }
+
+    public void setServiceAttachments(Map<String, Object> serviceAttachments) {
+        this.serviceAttachments = serviceAttachments;
+    }
+
+    public Map<String, Object> getClientAttachments() {
+        return clientAttachments;
+    }
+
+    public void setClientAttachments(Map<String, Object> clisntAttachments) {
+        this.clientAttachments = clisntAttachments;
+    }
 
     public String getServiceVersion() {
         return serviceVersion;

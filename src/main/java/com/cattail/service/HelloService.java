@@ -13,8 +13,6 @@ public class HelloService implements IHelloService{
 
     @Override
     public Object hello(String text) {
-        int a = 0;
-        a /= 0;
         return "hello" + text;
     }
 }

@@ -4,6 +4,10 @@ import com.cattail.annotation.RpcService;
 import com.cattail.common.Cache;
 import com.cattail.common.URL;
 import com.cattail.common.constants.Register;
+import com.cattail.filter.Filter;
+import com.cattail.filter.FilterData;
+import com.cattail.filter.FilterFactory;
+import com.cattail.filter.FilterResponse;
 import com.cattail.register.RegistryFactory;
 import com.cattail.register.RegistryService;
 import com.cattail.service.HelloService;
@@ -97,6 +101,14 @@ public class Server {
 
     public static void main(String[] args) throws Exception {
         final Server server = new Server(12345);
+        FilterFactory.registerServiceBeforeFilter(new ServerTokenFilter());
+        FilterFactory.registerServiceAfterFilter(new Filter() {
+            @Override
+            public FilterResponse doFilter(FilterData filterData) {
+                System.out.println("server after");
+                return new FilterResponse(true, null);
+            }
+        });
         server.registerBean(HelloService.class);
         server.run();
     }

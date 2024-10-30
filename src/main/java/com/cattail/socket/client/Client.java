@@ -3,6 +3,10 @@ package com.cattail.socket.client;
 import com.cattail.common.*;
 import com.cattail.common.constants.*;
 import com.cattail.event.RpcListenerLoader;
+import com.cattail.filter.Filter;
+import com.cattail.filter.FilterData;
+import com.cattail.filter.FilterFactory;
+import com.cattail.filter.FilterResponse;
 import com.cattail.proxy.IProxy;
 import com.cattail.proxy.ProxyFactory;
 import com.cattail.register.RegistryFactory;
@@ -95,6 +99,14 @@ public class Client {
         client.connectServer();
         final IProxy iProxy = ProxyFactory.get(RpcProxy.CG_LIB);
         final IHelloService proxy = iProxy.getProxy(IHelloService.class);
+        FilterFactory.registerClientBeforeFilter(new ClientTokenFilter());
+        FilterFactory.registerClientAfterFilter(new Filter() {
+            @Override
+            public FilterResponse doFilter(FilterData filterData) {
+                System.out.println("client after");
+                return new FilterResponse(true, null);
+            }
+        });
         System.out.println(proxy.hello("cattail"));
         System.out.println("===");
         System.out.println(proxy.hello("xxx"));

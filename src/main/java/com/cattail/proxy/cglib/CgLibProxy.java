@@ -3,6 +3,7 @@ package com.cattail.proxy.cglib;
 import com.cattail.annotation.RpcReference;
 import com.cattail.common.*;
 import com.cattail.common.constants.*;
+import com.cattail.filter.*;
 import com.cattail.register.RegistryFactory;
 import com.cattail.router.LoadBalancer;
 import com.cattail.router.LoadBalancerFactory;
@@ -93,12 +94,39 @@ public class CgLibProxy implements MethodInterceptor {
         final URL url = loadBalancer.select(urls);
 
         final ChannelFuture channelFuture = Cache.CHANNEL_FUTURE_MAP.get(new Host(url.getIp(), url.getPort()));
+        // 发送前
+        FilterLoader.addAndHandelFilter(FilterFactory.getClientBeforeFilters(), new FilterData<>(rpcRequest));
+//        final List<Filter> clientBeforeFilters = FilterFactory.getClientBeforeFilters();
+//        if (!clientBeforeFilters.isEmpty()) {
+//            final FilterData<RpcRequest> rpcRequestFilterData = new FilterData<>(rpcRequest);
+//            final FilterLoader filterLoader = new FilterLoader();
+//            filterLoader.addFilter(clientBeforeFilters);
+//            final FilterResponse filterResponse = filterLoader.doFilter(rpcRequestFilterData);
+//            if (!filterResponse.getResult()) {
+//                throw filterResponse.getException();
+//            }
+//        }
+        //发送
         channelFuture.channel().writeAndFlush(rpcProtocol);
 
         RpcFuture<RpcResponse> future = new RpcFuture<>(new DefaultPromise<>(new DefaultEventLoop()), time);
         RpcRequestHolder.REQUEST_MAP.put(requestId, future);
         RpcResponse rpcResponse = future.getPromise().sync().get(future.getTimeout(), timeUnit);
 
+        // 发送后
+        FilterLoader.addAndHandelFilter(FilterFactory.getClientAfterFilters(), new FilterData<>(rpcResponse));
+//        final List<Filter> clientAfterFilters = FilterFactory.getClientAfterFilters();
+//        if (!clientAfterFilters.isEmpty()) {
+//            final FilterData<RpcResponse> rpcResponseFilterData = new FilterData<>(rpcResponse);
+//            final FilterLoader filterLoader = new FilterLoader();
+//            filterLoader.addFilter(clientAfterFilters);
+//            final FilterResponse filterResponse = filterLoader.doFilter(rpcResponseFilterData);
+//            if (!filterResponse.getResult()) {
+//                throw filterResponse.getException();
+//            }
+//        }
+
+        // 发生异常
         if (rpcResponse.getException() != null) {
             rpcResponse.getException().printStackTrace();
             final FaultContext faultContext = new FaultContext(url, urls, rpcProtocol, requestId, rpcResponse.getException());
