@@ -1,5 +1,7 @@
 package com.cattail.proxy;
 
+import com.cattail.annotation.RpcReference;
+
 /**
  * @description:
  * @author：CatTail
@@ -8,5 +10,5 @@ package com.cattail.proxy;
  */
 public interface IProxy {
 
-    <T> T getProxy(Class<T> clz) throws InstantiationException, IllegalAccessException;
+    <T> T getProxy(Class<T> clz, RpcReference rpcReference) throws InstantiationException, IllegalAccessException;
 }

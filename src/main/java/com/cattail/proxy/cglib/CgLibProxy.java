@@ -45,13 +45,15 @@ public class CgLibProxy implements MethodInterceptor {
 
     private final TimeUnit timeUnit;
 
-    public CgLibProxy(Class clazz) {
+    private final LoadBalance loadBalance;
+
+    public CgLibProxy(Class clazz, RpcReference rpcReference) {
         this.serviceName = clazz.getName();
-        RpcReference annotation = (RpcReference) clazz.getAnnotation(RpcReference.class);
-        this.version = annotation.version();
-        this.faultTolerant = annotation.faultTolerant();
-        this.time = annotation.time();
-        this.timeUnit = annotation.timeUnit();
+        this.version = rpcReference.version();
+        this.faultTolerant = rpcReference.faultTolerant();
+        this.time = rpcReference.time();
+        this.timeUnit = rpcReference.timeUnit();
+        this.loadBalance = rpcReference.loadBalance();
     }
 
     @Override

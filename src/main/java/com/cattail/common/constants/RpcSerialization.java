@@ -8,7 +8,9 @@ package com.cattail.common.constants;
  */
 public enum RpcSerialization {
     JSON("json"),
-    JDK("jdk");
+    JDK("jdk"),
+    HESSIAN("hessian"),
+    KRYO("kryo");
 
     public String name;
 

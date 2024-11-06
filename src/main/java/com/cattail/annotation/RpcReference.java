@@ -1,6 +1,7 @@
 package com.cattail.annotation;
 
 import com.cattail.common.constants.FaultTolerant;
+import com.cattail.common.constants.LoadBalance;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -21,6 +22,8 @@ public @interface RpcReference {
     String version() default "1.0";
 
     FaultTolerant faultTolerant() default FaultTolerant.Failover;
+
+    LoadBalance loadBalance() default LoadBalance.Round;
 
     long time() default 3000;
 

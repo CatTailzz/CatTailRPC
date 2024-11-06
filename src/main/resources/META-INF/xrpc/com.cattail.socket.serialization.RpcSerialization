@@ -1,1 +1,1 @@
-json=com.cattail.socket.serialization.JsonSerialization
+json=com.cattail.socket.serialization.fastjson.JsonSerialization

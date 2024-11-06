@@ -12,7 +12,6 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
-import sun.misc.Cleaner;
 
 import java.util.ArrayList;
 import java.util.List;

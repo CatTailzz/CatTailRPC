@@ -1,8 +1,8 @@
-package com.cattail.socket.serialization;
+package com.cattail.socket.serialization.fastjson;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
+import com.cattail.socket.serialization.RpcSerialization;
 
 
 import java.io.IOException;
@@ -13,7 +13,7 @@ import java.io.IOException;
  * @date: 2024/10/26
  * @Copyright: https://github.com/CatTailzz
  */
-public class JsonSerialization implements RpcSerialization{
+public class JsonSerialization implements RpcSerialization {
 
     @Override
     public <T> byte[] serialize(T obj) throws IOException {

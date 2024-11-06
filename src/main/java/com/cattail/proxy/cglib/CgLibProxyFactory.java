@@ -1,5 +1,6 @@
 package com.cattail.proxy.cglib;
 
+import com.cattail.annotation.RpcReference;
 import com.cattail.proxy.IProxy;
 import net.sf.cglib.proxy.Enhancer;
 
@@ -12,10 +13,10 @@ import net.sf.cglib.proxy.Enhancer;
 public class CgLibProxyFactory<T> implements IProxy {
 
     @Override
-    public <T> T getProxy(Class<T> clz) throws InstantiationException, IllegalAccessException {
+    public <T> T getProxy(Class<T> clz, RpcReference rpcReference) throws InstantiationException, IllegalAccessException {
         Enhancer enhancer = new Enhancer();
         enhancer.setSuperclass(clz);
-        enhancer.setCallback(new CgLibProxy(clz));
+        enhancer.setCallback(new CgLibProxy(clz, rpcReference));
         return (T) enhancer.create();
     }
 }

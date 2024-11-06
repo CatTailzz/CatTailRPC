@@ -3,38 +3,28 @@ package com.cattail.socket.client;
 import com.cattail.common.*;
 import com.cattail.common.constants.*;
 import com.cattail.event.RpcListenerLoader;
-import com.cattail.filter.Filter;
-import com.cattail.filter.FilterData;
+
 import com.cattail.filter.FilterFactory;
-import com.cattail.filter.FilterResponse;
-import com.cattail.proxy.IProxy;
+
 import com.cattail.proxy.ProxyFactory;
 import com.cattail.register.RegistryFactory;
 import com.cattail.register.RegistryService;
 import com.cattail.router.LoadBalancerFactory;
-import com.cattail.service.HelloService;
-import com.cattail.service.IHelloService;
+
 import com.cattail.socket.codec.*;
-import com.cattail.socket.serialization.SerializationFactory;
 import com.cattail.tolerant.FaultTolerantFactory;
-import com.sun.jndi.cosnaming.IiopUrl;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.util.concurrent.DefaultPromise;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.sound.sampled.Port;
-import java.awt.print.Book;
+
+
 import java.io.IOException;
-import java.lang.reflect.Method;
+
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+
 
 /**
  * @description:
@@ -43,21 +33,10 @@ import java.util.concurrent.TimeoutException;
  * @Copyright: https://github.com/CatTailzz
  */
 public class Client {
-    private Logger logger = LoggerFactory.getLogger(Client.class);
-
-    private final String host;
-
-    private final Integer port;
 
     private Bootstrap bootstrap;
     private EventLoopGroup eventLoopGroup;
 
-    private ChannelFuture channelFuture;
-
-    public Client(String host, Integer port) throws InterruptedException {
-        this.host = host;
-        this.port = port;
-    }
 
     public void run(){
         bootstrap = new Bootstrap();
@@ -98,29 +77,9 @@ public class Client {
         FilterFactory.initClient();
         ProxyFactory.init();
         LoadBalancerFactory.init();
-        SerializationFactory.init();
+//        SerializationFactory.init();
     }
 
-    public static void main(String[] args) throws Exception {
-        final Client client = new Client("127.0.0.1", 12345);
-        client.run();
-        client.init();
-        final RegistryService registryService = RegistryFactory.get(Register.ZOOKEEPER);
-        final URL url = new URL();
-        url.setServiceName(IHelloService.class.getName());
-        url.setVersion("1.0");
-        registryService.subscribe(url);
-        client.connectServer();
-        final IProxy iProxy = ProxyFactory.get(RpcProxy.CG_LIB);
-        final IHelloService proxy = iProxy.getProxy(IHelloService.class);
-        System.out.println(proxy.hello("cattail"));
-        System.out.println("===");
-        System.out.println(proxy.hello("xxx"));
-        System.out.println("===");
-        System.out.println(proxy.hello("xxx"));
-        System.out.println("===");
-        System.out.println(proxy.hello("xxx"));
 
-    }
 }
 
